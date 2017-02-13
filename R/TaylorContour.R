@@ -3,16 +3,15 @@
 #'
 #' @param x x-Coordinates of the grid on which the data is observed.
 #' @param y y-Coordinates of the grid on which the data is observed.
-#' @param f A matrix of dimension c(length(x),length(y)). The contour on which 
-#'          tail probabilities are to be computed is defind as {f=c}. 
-#' @param level The level of the contour.
+#' @param cont The contour of f at value level
 #' @param R An array of dimension c(length(x),length(y),n) containing the 
 #'          realizations of the field.
+#' @importFrom stats na.omit pnorm
 #' @return A function g that computes for u>0 the probility that the supremum of
 #'         the field exceeds u. 
-TaylorContour = function(x, y, f, level, R){
+TaylorContour = function(x, y, cont, R){
   
-  cont = contourLines(x,y,f,levels=level,nlevels=1)
+  # cont = contourLines(x,y,f,levels=level,nlevels=1)
   # Is the contour empty?
   if(length(cont) == 0) return(function(u) return(0))
   
@@ -25,8 +24,12 @@ TaylorContour = function(x, y, f, level, R){
                       fields::interp.surface(list(x=x,y=y,z=R[,,j]),
                                      cbind(cont[[i]]$x,cont[[i]]$y)))
   
+  # clean up NAs due to extrapolation
+  SC = sapply(SC, na.omit)
+  
   #Gives the EC of one component.
   EC = function(X){
+    if(!is.matrix(X)) return(0) # Pathological cases.
     if(all(X[1,] == X[nrow(X),])) return(0)
     return(1)
   }
@@ -35,6 +38,8 @@ TaylorContour = function(x, y, f, level, R){
   
   #Gives the length of one component.
   L = function(X){
+    if(!is.matrix(X)) return(0) # Pathological cases.
+    if(nrow(X) == 1) return(0)
     X = X/sqrt(rowSums(X^2))
     sum(sqrt(rowSums(diff(X)^2)))
   }
